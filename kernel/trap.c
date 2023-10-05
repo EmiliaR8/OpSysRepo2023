@@ -38,9 +38,9 @@ usertrap(void)
 {
   int which_dev = 0;
 
-  if((r_sstatus() & SSTATUS_SPP) != 0)
+  if((r_sstatus() & SSTATUS_SPP) != 0){
     panic("usertrap: not from user mode");
-
+  }
   // send interrupts and exceptions to kerneltrap(),
   // since we're now in the kernel.
   w_stvec((uint64)kernelvec);
@@ -53,9 +53,9 @@ usertrap(void)
   if(r_scause() == 8){
     // system call
 
-    if(p->killed)
+    if(p->killed){
       exit(-1);
-
+    }
     // sepc points to the ecall instruction,
     // but we want to return to the next instruction.
     p->trapframe->epc += 4;
@@ -73,14 +73,14 @@ usertrap(void)
     p->killed = 1;
   }
 
-  if(p->killed)
+  if(p->killed){
     exit(-1);
-
+  }
   // give up the CPU if this is a timer interrupt.
-  if(which_dev == 2)
-      p->cpuTime++;
+  if(which_dev == 2){
+      p->cputime++;
       yield();
-
+  }
   usertrapret();
 }
 
@@ -151,10 +151,10 @@ kerneltrap()
   }
 
   // give up the CPU if this is a timer interrupt.
-  if(which_dev == 2 && myproc() != 0 && myproc()->state == RUNNING)
-  	myproc()->cpuTime++;
+  if(which_dev == 2 && myproc() != 0 && myproc()->state == RUNNING){
+  	myproc()->cputime++;
   	yield();
-
+  }
   // the yield() may have caused some traps to occur,
   // so restore trap registers for use by kernelvec.S's sepc instruction.
   w_sepc(sepc);
