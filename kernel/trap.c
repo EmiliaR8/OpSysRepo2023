@@ -67,7 +67,31 @@ usertrap(void)
     syscall();
   } else if((which_dev = devintr()) != 0){
     // ok
-  } else {
+  }
+  
+  else if(r_scause() == 13 || r_scause() == 15){ //homework4
+  	uint64 faulting_addr = r_stval();
+  	if(faulting_addr < p -> sz){
+  		char* physical_frame = kalloc();
+  		if(physical_frame == 0){ //if allocation failed
+  			printf("usertrap(): is out of memory. PID=%d, faulting_address=%p\n",p->pid, faulting_addr);
+  			p->killed = 1;
+  		}
+  		else{//allocation was successful
+  			memset((void*)physical_frame,0,PGSIZE);
+  	mappages(p->pagetable, PGROUNDDOWN(faulting_addr), PGSIZE, (uint64)physical_frame, (PTE_R | PTE_W | PTE_X | PTE_U));
+  	//ugly placement just to get good pic for lab report
+  		}
+  	}
+  	else{
+		printf("usertrap(): invalid memory access, PID=%d, faulting_address=%p\n",p->pid, faulting_addr);
+	  	p->killed = 1;
+	}
+  }
+  
+  
+  
+  else {
     printf("usertrap(): unexpected scause %p pid=%d\n", r_scause(), p->pid);
     printf("            sepc=%p stval=%p\n", r_sepc(), r_stval());
     p->killed = 1;

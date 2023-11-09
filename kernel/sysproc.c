@@ -43,13 +43,17 @@ sys_sbrk(void)
 {
   int addr;
   int n;
+  int new_size;
 
   if(argint(0, &n) < 0)
     return -1;
   addr = myproc()->sz;
-  if(growproc(n) < 0)
-    return -1;
-  return addr;
+  new_size = addr+n;
+  if(new_size < TRAPFRAME){
+  	myproc()->sz= new_size;
+  	return addr; 
+  }
+  return -1;
 }
 
 uint64
