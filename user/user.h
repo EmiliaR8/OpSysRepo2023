@@ -42,6 +42,8 @@ void free(void*);
 
 //homework4
 uint64 freepmem(void);
+
+
 int atoi(const char*);
 int memcmp(const void *, const void *, uint);
 void *memcpy(void *, const void *, uint);

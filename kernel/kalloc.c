@@ -96,7 +96,7 @@ freepmem(void){
 	
 	release(&kmem.lock);
 	int fMemory = fPages * PGSIZE;
-	return fMemory
+	return fMemory;
 }
 
 
