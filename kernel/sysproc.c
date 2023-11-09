@@ -107,3 +107,17 @@ sys_getprocs(void)
     return -1;
   return(procinfo(addr));
 }
+
+
+
+//for homework 4
+uint64
+sys_freepmem(void){
+	int res = freepmem();
+	return res;
+}
+
+
+
+
+
