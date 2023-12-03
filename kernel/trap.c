@@ -5,6 +5,7 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "defs.h"
+#include "stat.h"
 
 struct spinlock tickslock;
 uint ticks;
@@ -67,31 +68,40 @@ usertrap(void)
     syscall();
   } else if((which_dev = devintr()) != 0){
     // ok
-  }
+ 
   
-  else if(r_scause() == 13 || r_scause() == 15){ //homework4
-  	uint64 faulting_addr = r_stval();
-  	if(faulting_addr < p -> sz){
-  		char* physical_frame = kalloc();
-  		if(physical_frame == 0){ //if allocation failed
-  			printf("usertrap(): is out of memory. PID=%d, faulting_address=%p\n",p->pid, faulting_addr);
-  			p->killed = 1;
-  		}
-  		else{//allocation was successful
-  			memset((void*)physical_frame,0,PGSIZE);
-  	mappages(p->pagetable, PGROUNDDOWN(faulting_addr), PGSIZE, (uint64)physical_frame, (PTE_R | PTE_W | PTE_X | PTE_U));
-  	//ugly placement just to get good pic for lab report
-  		}
-  	}
-  	else{
-		printf("usertrap(): invalid memory access, PID=%d, faulting_address=%p\n",p->pid, faulting_addr);
-	  	p->killed = 1;
-	}
-  }
-  
-  
-  
-  else {
+}else if(r_scause() == 13 || r_scause() ==15){
+      //checking if the faulting address (stval register) is valid
+      if(r_stval() >= p ->sz){
+          //check if  the mapped region protection permits operation
+          for(int i=0;i<MAX_MMR; i++){
+              if(p->mmr[i].valid && p->mmr[i].addr < r_stval() && p->mmr[i].addr+p->mmr[i].length > r_stval()){
+                  if(r_scause() == 13){
+                      //read permission not set
+                      if((p->mmr[i].prot & PROT_READ)==0){
+                          p->killed = 1;
+                          exit(-1);
+                      }
+                  }
+              }
+          }
+      }
+      void * physical_mem = kalloc();
+      //ifallocating memory and insert into pagetable
+      if(physical_mem){
+          //maps virtual memory was done correctly 
+          if(mappages(p->pagetable, PGROUNDDOWN(r_stval()), PGSIZE,(uint64)physical_mem,(PTE_R|PTE_W|PTE_X|PTE_U))<0){
+              kfree(physical_mem);
+              printf("mappages did not work\n");
+              p->killed = 1; 
+              exit(-1);
+          }
+      }else{
+          printf("usertrap(): no more memory\n");
+          p->killed = 1;
+          exit(-1);
+      }	
+  }else {
     printf("usertrap(): unexpected scause %p pid=%d\n", r_scause(), p->pid);
     printf("            sepc=%p stval=%p\n", r_sepc(), r_stval());
     p->killed = 1;

@@ -43,7 +43,13 @@ void free(void*);
 //homework4
 uint64 freepmem(void);
 
+//homework5
+void* mmap(void*, int, int, int, int, void*);
+int munmap(void*, int);
+
 
 int atoi(const char*);
 int memcmp(const void *, const void *, uint);
 void *memcpy(void *, const void *, uint);
+
+
