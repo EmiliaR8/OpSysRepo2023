@@ -67,17 +67,13 @@ usertrap(void)
 
     syscall();
   } else if((which_dev = devintr()) != 0){
-    // ok
- 
-  
-}else if(r_scause() == 13 || r_scause() ==15){
-      //checking if the faulting address (stval register) is valid
-      if(r_stval() >= p ->sz){
-          //check if  the mapped region protection permits operation
+  //ok
+}
+else if(r_scause() == 13 || r_scause() ==15){
+      if(r_stval() >= p ->sz){//check for fault address
           for(int i=0;i<MAX_MMR; i++){
               if(p->mmr[i].valid && p->mmr[i].addr < r_stval() && p->mmr[i].addr+p->mmr[i].length > r_stval()){
                   if(r_scause() == 13){
-                      //read permission not set
                       if((p->mmr[i].prot & PROT_READ)==0){
                           p->killed = 1;
                           exit(-1);
