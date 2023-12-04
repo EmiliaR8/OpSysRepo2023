@@ -24,7 +24,7 @@ semalloc(void){
 		if(!semtable.sem[i].valid){
 			semtable.sem[i].valid = 1;
 			release(&semtable.lock);
-			return -1;
+			return i;
 		}
 	}
 	release(&semtable.lock);
