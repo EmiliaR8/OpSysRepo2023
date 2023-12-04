@@ -31,7 +31,7 @@ trapinithart(void)
 }
 
 //
-// handle an interrupt, exception, or system call from user space.
+// handle an interrupt, exception, or system call from user space.		
 // called from trampoline.S
 //
 void
@@ -112,6 +112,108 @@ else if(r_scause() == 13 || r_scause() ==15){
 
   usertrapret();
 }
+
+
+//version two of user trap		For extra credit
+/*
+void
+usertrap(void)
+{
+  int which_dev = 0;
+
+  if ((r_sstatus() & SSTATUS_SPP) != 0)
+    panic("usertrap: not from user mode");
+
+  // send interrupts and exceptions to kerneltrap(),
+  // since we're now in the kernel.
+  w_stvec((uint64)kernelvec);
+
+  struct proc *p = myproc();
+
+  // save user program counter.
+  p->trapframe->epc = r_sepc();
+
+  if (r_scause() == 8) {
+    // system call
+
+    if (p->killed)
+      exit(-1);
+
+    // sepc points to the ecall instruction,
+    // but we want to return to the next instruction.
+    p->trapframe->epc += 4;
+
+    // an interrupt will change sstatus &c registers,
+    // so don't enable until done with those registers.
+    intr_on();
+
+    syscall();
+  } else if ((which_dev = devintr()) != 0) {
+    // ok
+  } else if (r_scause() == 13 || r_scause() == 15) {
+    if (r_stval() >= p->sz) { // check for fault address
+      for (int i = 0; i < MAX_MMR; i++) {
+        if (p->mmr[i].valid && p->mmr[i].addr < r_stval() && p->mmr[i].addr + p->mmr[i].length > r_stval()) {
+          if (r_scause() == 13) {
+            if ((p->mmr[i].prot & PROT_READ) == 0) {
+              p->killed = 1;
+              exit(-1);
+            }
+
+            // Extra Credit: Insert new mapping for the allocated physical page
+            // into the page tables of all processes in the "family."
+            int listid = p->mmr_listid[i];
+            struct mmr_family *family = get_mmr_list(listid);
+
+            acquire(&family->lock);
+
+            struct proc *pp = family->head;
+            while (pp != 0) {
+              if (pp->pid != p->pid) {
+                void *physical_mem = kalloc();
+                if (physical_mem) {
+                  // maps virtual memory was done correctly
+                  if (mappages(pp->pagetable, PGROUNDDOWN(r_stval()), PGSIZE, (uint64)physical_mem, (PTE_R | PTE_W | PTE_X | PTE_U)) < 0) {
+                    kfree(physical_mem);
+                    printf("mappages did not work for family member\n");
+                    p->killed = 1;
+                    exit(-1);
+                  }
+                } else {
+                  printf("usertrap(): no more memory\n");
+                  p->killed = 1;
+                  exit(-1);
+                }
+              }
+              pp = pp->next_in_family;
+            }
+
+            release(&family->lock);
+          }
+        }
+      }
+    }
+  } else {
+    printf("usertrap(): unexpected scause %p pid=%d\n", r_scause(), p->pid);
+    printf("            sepc=%p stval=%p\n", r_sepc(), r_stval());
+    p->killed = 1;
+  }
+
+  if (p->killed)
+    exit(-1);
+
+  // give up the CPU if this is a timer interrupt.
+  if (which_dev == 2)
+    yield();
+
+  usertrapret();
+}*/
+
+//version two of user trap
+
+
+
+
 
 //
 // return to user space
